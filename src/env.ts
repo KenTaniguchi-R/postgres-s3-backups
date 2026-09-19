@@ -47,6 +47,11 @@ export const env = envsafe({
     desc: 'Enables support for buckets with object lock by providing an MD5 hash with the backup file',
     default: false
   }),
+  DISABLE_S3_CHECKSUM_VALIDATION: bool({
+    desc: 'Stop the AWS SDK sending its default flexible checksums. Required for Cloudflare R2 and most other S3-compatible stores, which reject the x-amz-checksum-* headers the SDK has sent by default since v3.729.',
+    default: false,
+    allowEmpty: true,
+  }),
   BACKUP_OPTIONS: str({
     desc: 'Any valid pg_dump option.',
     default: '',

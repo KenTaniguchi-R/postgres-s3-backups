@@ -19,6 +19,18 @@ const uploadToS3 = async ({ name, path }: { name: string, path: string }) => {
     forcePathStyle: env.AWS_S3_FORCE_PATH_STYLE
   }
 
+  // Since v3.729 the SDK computes a CRC32 checksum for every upload and sends it
+  // as x-amz-checksum-crc32 / x-amz-sdk-checksum-algorithm. Cloudflare R2 does
+  // not implement flexible checksums and rejects the request, so the upload
+  // fails on a store that is otherwise fine. WHEN_REQUIRED keeps checksums for
+  // the operations that genuinely mandate them and drops them everywhere else.
+  if (env.DISABLE_S3_CHECKSUM_VALIDATION) {
+    console.log("Flexible checksums disabled (S3-compatible endpoint).");
+
+    clientOptions.requestChecksumCalculation = "WHEN_REQUIRED";
+    clientOptions.responseChecksumValidation = "WHEN_REQUIRED";
+  }
+
   if (env.AWS_S3_ENDPOINT) {
     console.log(`Using custom endpoint: ${env.AWS_S3_ENDPOINT}`);
 
