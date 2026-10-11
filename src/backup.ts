@@ -9,6 +9,23 @@ import os from "os";
 import { env } from "./env.js";
 import { createMD5 } from "./util.js";
 
+/**
+ * Where this run's dump goes. Every run lands in BUCKET_SUBFOLDER unless
+ * HOURLY_SUBFOLDER and DAILY_UTC_HOUR are both set: then only the run in the
+ * daily hour does, and the rest go to HOURLY_SUBFOLDER. Two prefixes let one
+ * cron service keep a short-lived hourly series beside a long-lived daily one,
+ * each with its own lifecycle rule.
+ */
+export const subfolderFor = (now: Date): string => {
+  const daily = env.DAILY_UTC_HOUR.trim();
+  if (!env.HOURLY_SUBFOLDER || daily === "") return env.BUCKET_SUBFOLDER;
+  const hour = Number(daily);
+  if (!Number.isInteger(hour) || hour < 0 || hour > 23) {
+    throw new Error(`DAILY_UTC_HOUR must be an hour from 0 to 23, got "${daily}"`);
+  }
+  return now.getUTCHours() === hour ? env.BUCKET_SUBFOLDER : env.HOURLY_SUBFOLDER;
+}
+
 const uploadToS3 = async ({ name, path }: { name: string, path: string }) => {
   console.log("Uploading backup to S3...");
 
@@ -37,8 +54,9 @@ const uploadToS3 = async ({ name, path }: { name: string, path: string }) => {
     clientOptions.endpoint = env.AWS_S3_ENDPOINT;
   }
 
-  if (env.BUCKET_SUBFOLDER) {
-    name = env.BUCKET_SUBFOLDER + "/" + name;
+  const subfolder = subfolderFor(new Date());
+  if (subfolder) {
+    name = subfolder + "/" + name;
   }
 
   let params: PutObjectCommandInput = {

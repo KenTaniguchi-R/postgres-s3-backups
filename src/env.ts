@@ -37,6 +37,16 @@ export const env = envsafe({
     default: '',
     allowEmpty: true
   }),
+  HOURLY_SUBFOLDER: str({
+    desc: 'With DAILY_UTC_HOUR, the subfolder for every run outside that hour, so hourly dumps can expire sooner than the daily one (an R2 lifecycle rule per prefix). Unset keeps one subfolder for every run.',
+    default: '',
+    allowEmpty: true
+  }),
+  DAILY_UTC_HOUR: str({
+    desc: 'The UTC hour (0-23) whose run is the daily backup and goes to BUCKET_SUBFOLDER. Only read when HOURLY_SUBFOLDER is set.',
+    default: '',
+    allowEmpty: true
+  }),
   SINGLE_SHOT_MODE: bool({
     desc: 'Run a single backup on start and exit when completed',
     default: false,
