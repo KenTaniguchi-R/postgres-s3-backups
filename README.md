@@ -27,6 +27,7 @@ A simple NodeJS application to backup your PostgreSQL database to S3 via a cron.
 - `BACKUP_FILE_PREFIX` - Add a prefix to the file name.
 
 - `BUCKET_SUBFOLDER` - Define a subfolder to place the backup files in.
+- `HOURLY_SUBFOLDER` / `DAILY_UTC_HOUR` - Optional. With both set, only the run in `DAILY_UTC_HOUR` (0-23, UTC) goes to `BUCKET_SUBFOLDER`; every other run goes to `HOURLY_SUBFOLDER`. Run the cron hourly and give each prefix its own lifecycle rule to keep a short hourly series beside a long daily one.
 
 - `SINGLE_SHOT_MODE` - Run a single backup on start and exit when completed. Useful with the platform's native CRON schedular.
 
@@ -77,6 +78,8 @@ these defaults you no longer have to remember to set them.
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | R2 API token, Object Read & Write |
 | `DISABLE_S3_CHECKSUM_VALIDATION` | `true` |
 | `BUCKET_SUBFOLDER` | `postgres-backups` |
+| `HOURLY_SUBFOLDER` | `postgres-backups-hourly` (a sibling prefix, not a child, so the 30-day rule on `postgres-backups/` does not also match it) |
+| `DAILY_UTC_HOUR` | `18` (03:00 JST) |
 | `SINGLE_SHOT_MODE` | `true` — Railway's own `cronSchedule` does the scheduling, so the container runs for a minute a day rather than a day a day |
 | `RUN_ON_STARTUP` | `true` for the first deploy, so you find out immediately whether it works |
 
