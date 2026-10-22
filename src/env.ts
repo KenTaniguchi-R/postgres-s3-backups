@@ -62,6 +62,9 @@ export const env = envsafe({
     default: false,
     allowEmpty: true,
   }),
+  BACKUP_AGE_RECIPIENT: str({
+    desc: 'The age public key (age1...) every dump is encrypted to before upload. Required: a dump never leaves the container unencrypted. The private key lives outside the platform that runs this service.',
+  }),
   BACKUP_OPTIONS: str({
     desc: 'Any valid pg_dump option.',
     default: '',

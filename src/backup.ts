@@ -1,4 +1,4 @@
-import { exec, execSync } from "child_process";
+import { exec, execFile, execSync } from "child_process";
 import { S3Client, S3ClientConfig, PutObjectCommandInput } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import { createReadStream, unlink, statSync } from "fs";
@@ -122,6 +122,30 @@ const dumpToFile = async (filePath: string) => {
   console.log("DB dumped to file...");
 }
 
+/**
+ * Encrypts the dump to BACKUP_AGE_RECIPIENT and returns the encrypted file's
+ * path. The bucket credentials sit on the same platform as everything else,
+ * so a leaked platform env must not be enough to read a dump: only the holder
+ * of the age private key, kept off the platform, can decrypt one.
+ */
+const encryptFile = async (filePath: string): Promise<string> => {
+  console.log("Encrypting backup with age...");
+
+  const encryptedPath = `${filePath}.age`;
+  await new Promise((resolve, reject) => {
+    execFile("age", ["--encrypt", "--recipient", env.BACKUP_AGE_RECIPIENT, "--output", encryptedPath, filePath], (error, _stdout, stderr) => {
+      if (error) {
+        reject({ error: error, stderr: stderr.trimEnd() });
+        return;
+      }
+      resolve(undefined);
+    });
+  });
+
+  console.log("Encrypted filesize:", filesize(statSync(encryptedPath).size));
+  return encryptedPath;
+}
+
 const deleteFile = async (path: string) => {
   console.log("Deleting file...");
   await new Promise((resolve, reject) => {
@@ -142,8 +166,10 @@ export const backup = async () => {
   const filepath = path.join(os.tmpdir(), filename);
 
   await dumpToFile(filepath);
-  await uploadToS3({ name: filename, path: filepath });
+  const encryptedPath = await encryptFile(filepath);
   await deleteFile(filepath);
+  await uploadToS3({ name: `${filename}.age`, path: encryptedPath });
+  await deleteFile(encryptedPath);
 
   console.log("DB backup complete...");
 }
