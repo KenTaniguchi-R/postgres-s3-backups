@@ -63,6 +63,14 @@ for a reason that stopped a deploy:
   fails on the first run with a version error.
 - **`NODE_VERSION` now defaults to `22`.** Upstream pins 20.11.1; the current
   AWS SDK wants a supported Node line.
+- **`BACKUP_AGE_RECIPIENT` (required): every dump is encrypted with
+  [age](https://age-encryption.org) before upload**, and uploaded as
+  `….tar.gz.age`. The bucket credentials live in the same platform env as
+  everything else, and in October 2026 that env leaked: one R2 token could have
+  downloaded every plaintext dump. Now a dump is readable only with the age
+  private key, which is kept in 1Password and never on the platform. The image
+  installs `age` from Alpine. There is no plaintext fallback; the service
+  refuses to start without a recipient.
 
 Both versions are `ARG`s, so Railway build variables still override them. With
 these defaults you no longer have to remember to set them.
@@ -72,10 +80,11 @@ these defaults you no longer have to remember to set them.
 | | |
 |---|---|
 | `BACKUP_DATABASE_URL` | the private-network URL, not the public proxy |
-| `AWS_S3_BUCKET` | the same R2 bucket the app uses |
+| `AWS_S3_BUCKET` | `studentoffers-backups`, a bucket of its own, not the app's |
 | `AWS_S3_ENDPOINT` | `https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com` |
 | `AWS_S3_REGION` | `auto` |
-| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | R2 API token, Object Read & Write |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | R2 API token, Object Read & Write, scoped to the backups bucket only |
+| `BACKUP_AGE_RECIPIENT` | the age public key (`age1…`); the private key is the 1Password document "Fidera backups age key (private)" |
 | `DISABLE_S3_CHECKSUM_VALIDATION` | `true` |
 | `BUCKET_SUBFOLDER` | `postgres-backups` |
 | `HOURLY_SUBFOLDER` | `postgres-backups-hourly` (a sibling prefix, not a child, so the 30-day rule on `postgres-backups/` does not also match it) |
@@ -85,5 +94,6 @@ these defaults you no longer have to remember to set them.
 
 **A backup schedule nobody has seen succeed is not a backup.** Confirm an object
 appears under `postgres-backups/` after the first run, and restore one into a
-local `groonga/pgroonga` container before trusting it — the dump carries
+local `groonga/pgroonga` container before trusting it. Decrypt first:
+`age --decrypt -i <private key file> backup-….tar.gz.age > backup.tar.gz` — the dump carries
 `USING pgroonga` index definitions, so a stock Postgres image cannot restore it.
