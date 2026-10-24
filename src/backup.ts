@@ -7,6 +7,7 @@ import path from "path";
 import os from "os";
 
 import { env } from "./env.js";
+import { monitored } from "./sentry.js";
 import { createMD5 } from "./util.js";
 
 /**
@@ -157,7 +158,7 @@ const deleteFile = async (path: string) => {
   });
 }
 
-export const backup = async () => {
+const runBackup = async () => {
   console.log("Initiating DB backup...");
 
   const date = new Date().toISOString();
@@ -173,3 +174,6 @@ export const backup = async () => {
 
   console.log("DB backup complete...");
 }
+
+/** One backup, reported to the Sentry cron monitor when SENTRY_DSN is set. */
+export const backup = () => monitored(runBackup);
