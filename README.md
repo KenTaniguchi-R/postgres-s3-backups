@@ -97,3 +97,13 @@ appears under `postgres-backups/` after the first run, and restore one into a
 local `groonga/pgroonga` container before trusting it. Decrypt first:
 `age --decrypt -i <private key file> backup-….tar.gz.age > backup.tar.gz` — the dump carries
 `USING pgroonga` index definitions, so a stock Postgres image cannot restore it.
+
+## Sentry cron monitor (optional)
+
+Set `SENTRY_DSN` and `SENTRY_CRON_MONITOR_SLUG` (for example `postgres-backups`) and each run
+checks in to a [Sentry cron monitor](https://docs.sentry.io/product/crons/): `in_progress` when it
+starts, `ok` after the upload, `error` if anything throws. Sentry opens an issue on an `error`, on a
+run past 20 minutes, and when no check-in arrives within 15 minutes of the schedule, so a backup that
+never starts is caught as well as one that fails. The first check-in creates the monitor from
+`SENTRY_CRON_SCHEDULE` (default `0 * * * *`, UTC). Both variables unset: nothing is sent. A failed
+check-in never fails the backup.

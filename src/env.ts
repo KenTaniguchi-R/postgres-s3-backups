@@ -70,4 +70,22 @@ export const env = envsafe({
     default: '',
     allowEmpty: true,
   }),
+  SENTRY_DSN: str({
+    desc: 'A Sentry DSN. With SENTRY_CRON_MONITOR_SLUG, each run checks in to a Sentry cron monitor (in_progress, then ok, or error). Unset sends nothing.',
+    default: '',
+    allowEmpty: true,
+  }),
+  SENTRY_CRON_MONITOR_SLUG: str({
+    desc: 'The Sentry cron monitor to check in to, e.g. postgres-backups. Created on the first check-in if it does not exist.',
+    default: '',
+    allowEmpty: true,
+  }),
+  SENTRY_CRON_SCHEDULE: str({
+    desc: 'The crontab (UTC) the monitor expects check-ins on. Match the Railway cron schedule.',
+    default: '0 * * * *',
+  }),
+  SENTRY_ENVIRONMENT: str({
+    desc: 'The environment the check-ins are filed under.',
+    default: 'production',
+  }),
 })
